@@ -24,7 +24,7 @@ RUN chmod +x /start.sh
 
 
 # Expose FastAPI port
-EXPOSE 8000
+EXPOSE 8080
 
 # Start Ollama and FastAPI
 CMD ["./start.sh"]
