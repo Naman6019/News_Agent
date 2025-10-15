@@ -6,6 +6,7 @@ Sends daily news summaries via WhatsApp using RSS feeds and AI
 import logging
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
+import os
 
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -105,10 +106,10 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 if __name__ == "__main__":
     import uvicorn
+    port = int(os.environ.get("PORT", 8000))  # Cloud Run sets this automatically
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
-        port=8000,
-        reload=True,
+        port=port,
         log_level="info",
     )
