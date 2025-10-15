@@ -106,7 +106,9 @@ app.include_router(api_router, prefix=settings.API_V1_STR)
 
 if __name__ == "__main__":
     import uvicorn
-    port = int(os.environ.get("PORT", 8000))  # Cloud Run sets this automatically
+    import os
+
+    port = int(os.environ.get("PORT", 8080))  # 8080 is default for Cloud Run
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
