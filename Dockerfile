@@ -1,35 +1,30 @@
-# Use Python 3.11 slim image for smaller size
+# Python base image
 FROM python:3.11-slim
 
 # Set working directory
 WORKDIR /app
 
-# Install system dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    g++ \
-    && rm -rf /var/lib/apt/lists/*
-
-# Copy requirements first for better Docker layer caching
+# Copy and install requirements
 COPY requirements.txt .
-
-# Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy application code
+# Copy project code
 COPY . .
 
-# Create non-root user for security
-RUN useradd --create-home --shell /bin/bash app \
-    && chown -R app:app /app
-USER app
-
-# Expose port
+# Expose FastAPI port
 EXPOSE 8000
 
-# Health check
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/health || exit 1
+# Install Ollama CLI
+RUN curl -fsSL https://ollama.com/install.sh | bash
 
-# Run the application
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--access-log"]
+# Pull Gemma3:1B model
+RUN ollama pull gemma3:1b
+
+# Default environment variables (overridden by env_file in docker-compose)
+ENV OLLAMA_BASE_URL=http://localhost:11434
+ENV OLLAMA_MODEL=gemma3:1b
+ENV OLLAMA_MAX_TOKENS=500
+ENV OLLAMA_TEMPERATURE=0.3
+
+# Start Ollama server + FastAPI
+CMD ["sh", "-c", "ollama serve & uvicorn app.main:app --host 0.0.0.0 --port 8000"]
