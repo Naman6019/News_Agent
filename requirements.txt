@@ -1,0 +1,47 @@
+# Core FastAPI and async support
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+pydantic==2.10.0
+pydantic-settings==2.10.1
+
+# RSS feed processing
+feedparser==6.0.10
+beautifulsoup4==4.12.2
+lxml==4.9.3
+requests==2.32.5
+
+# AI summarization (Local with Ollama)
+ollama==0.6.0
+requests==2.32.5
+
+# WhatsApp integration
+twilio==8.10.0
+
+# Scheduling and background tasks
+apscheduler==3.10.4
+python-multipart==0.0.6
+
+# Database and caching (optional, for persistence)
+redis==5.0.1
+sqlalchemy==2.0.23
+alembic==1.12.1
+
+# Environment and configuration
+python-dotenv==1.0.1
+
+# Logging and monitoring
+structlog==23.2.0
+sentry-sdk[fastapi]==2.20.0
+
+# Development and testing
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.27.0
+
+# Date and time utilities
+pytz==2023.3
+python-dateutil==2.8.2
+
+# Text processing and formatting
+markdown==3.5.1
+bleach==6.1.0
