@@ -1,12 +1,12 @@
 # -----------------------------------
-# AI News Digest Worker Dockerfile (Final)
+# AI News Digest Worker Dockerfile (Final, Updated)
 # -----------------------------------
 FROM ollama/ollama:latest
 
 WORKDIR /app
-ENV PYTHONPATH=/app
 COPY . /app
 
+# Install Python inside a venv to avoid Debian pip restrictions
 RUN apt-get update && \
     apt-get install -y --no-install-recommends python3-venv curl bash && \
     apt-get upgrade -y && \
@@ -15,11 +15,14 @@ RUN apt-get update && \
 
 ENV PATH="/opt/venv/bin:$PATH"
 
-COPY requirements-digest.txt /tmp/requirements-digest.txt
+# Install Python packages
 RUN pip install --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r /tmp/requirements-digest.txt
+    pip install --no-cache-dir -r requirements-digest.txt
 
+# ✅ Preload the Ollama model to ensure availability
+RUN ollama pull gemma3:1b || true
 
+# Copy entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
