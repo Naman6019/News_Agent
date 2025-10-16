@@ -1,37 +1,30 @@
-# -----------------------------------
-# AI News Digest Worker + Ollama Setup
-# -----------------------------------
+# Dockerfile.digest
 FROM ollama/ollama:latest
 
+# install minimal packages for Python and curl
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends python3-venv python3-distutils curl bash && \
+    rm -rf /var/lib/apt/lists/*
+
 WORKDIR /app
+
+# copy repo (adjust if you only want some folders)
 COPY . /app
 
-# -----------------------------------
-# Install Python safely
-# -----------------------------------
-RUN apt-get update && apt-get install -y python3 python3-pip python3-venv && \
-    python3 -m pip install --upgrade --no-cache-dir pip setuptools wheel --break-system-packages && \
-    pip install --no-cache-dir --break-system-packages -r requirements-lock.txt || true
+# create and activate a virtualenv to avoid system pip conflicts (PEP 668)
+RUN python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
+# upgrade pip inside venv and install deps
+# use requirements-lock.txt (as you have) — adjust filename if necessary
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements-lock.txt
+
+# copy entrypoint script
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Ollama default listen port (internal)
 EXPOSE 11434
 
-# -----------------------------------
-# Reset entrypoint to a shell
-# -----------------------------------
-ENTRYPOINT ["/bin/bash", "-c"]
-
-# -----------------------------------
-# Start Ollama, wait for it to be ready,
-# verify it’s responding, then start digest job
-# -----------------------------------
-CMD "\
-echo '🔵 Starting Ollama server...' && \
-ollama serve & \
-sleep 10 && \
-echo '🟢 Checking Ollama health...' && \
-curl -s http://localhost:11434/api/tags || echo '⚠️ Ollama not responding yet' && \
-echo '📦 Pulling model gemma3:1b...' && \
-ollama pull gemma3:1b && \
-echo '✅ Model ready. Launching News Digest...' && \
-python /app/app/send_digest.py || echo '⚠️ Digest exited early, restarting Ollama...' && \
-tail -f /dev/null"
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
