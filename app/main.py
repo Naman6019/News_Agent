@@ -97,14 +97,15 @@ async def health_check():
     }
 
 
-@app.get("/")
+@app.api_route("/", methods=["GET", "HEAD"])
 async def root():
-    """Root endpoint."""
+    """Root endpoint (supports GET & HEAD for uptime monitors)."""
     return {
         "message": "AI News Agent API",
         "docs": "/docs",
         "version": settings.VERSION,
     }
+
 
 
 # Include all routers
