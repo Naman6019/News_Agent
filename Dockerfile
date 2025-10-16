@@ -1,33 +1,26 @@
-# Use official Python image
+# ----------------------------
+# Base Image
+# ----------------------------
 FROM python:3.11-slim
 
-# Set working directory
 WORKDIR /app
 
-# Install OS dependencies
-RUN apt-get update && apt-get install -y curl unzip git && rm -rf /var/lib/apt/lists/*
+# Install dependencies
+RUN apt-get update && apt-get install -y gcc curl && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements and install
+# Copy and install Python dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy project files
+# Copy entire app
 COPY . .
 
-# Install Ollama CLI
-RUN curl -fsSL https://ollama.com/install.sh | bash
+# Create non-root user
+RUN useradd -m -r newsagent && chown -R newsagent /app
+USER newsagent
 
+# Expose FastAPI port (for web service)
+EXPOSE 8000
 
-# Copy startup script and make it executable
-COPY start.sh /start.sh
-RUN chmod +x /start.sh
-
-
-# Expose FastAPI port
-EXPOSE 8080
-
-# Start Ollama and FastAPI
-CMD ["./start.sh"]
-
-# Install system SSL certificates
-RUN apt-get update && apt-get install -y ca-certificates && update-ca-certificates
+# Default command (Render overrides this anyway)
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
