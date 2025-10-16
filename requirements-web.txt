@@ -5,6 +5,9 @@ fastapi==0.104.1
 pydantic==2.10.0
 pydantic-settings==2.10.1
 
+# Database ORM (for health checks)
+sqlalchemy==2.0.23
+
 # ASGI server
 uvicorn[standard]==0.24.0
 
