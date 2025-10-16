@@ -1,6 +1,6 @@
 """
 WhatsApp Message Service using Twilio API
-Handles sending formatted news messages via WhatsApp
+Handles sending formatted news messages via WhatsApp with template fallback
 """
 
 import asyncio
@@ -43,8 +43,14 @@ class WhatsAppService:
             self.from_number = None
             self.to_number = None
 
-    async def send_message(self, message: str) -> bool:
-        """Send a WhatsApp message with fallback for 24-hour session expiry."""
+    async def send_message(
+        self,
+        message: str,
+        digest: Optional[str] = None,
+        delivery_time: Optional[str] = None,
+        links: Optional[List[str]] = None
+    ) -> bool:
+        """Send a WhatsApp message with fallback to custom template when session expired."""
         if not self.client:
             self.logger.warning("WhatsApp service not configured - message not sent")
             return False
@@ -52,7 +58,6 @@ class WhatsAppService:
         try:
             self.logger.info(f"Sending WhatsApp message to {self.to_number}")
 
-            # Run Twilio API call in executor to avoid blocking
             await asyncio.get_event_loop().run_in_executor(
                 None,
                 lambda: self.client.messages.create(
@@ -66,21 +71,33 @@ class WhatsAppService:
             return True
 
         except Exception as e:
-            # Handle 24-hour session restriction (error 63016)
+            # Handle 24-hour session restriction
             if hasattr(e, "code") and e.code == 63016:
-                self.logger.warning("Session expired — sending WhatsApp template message fallback")
+                self.logger.warning("Session expired — sending WhatsApp template fallback")
 
                 try:
+                    from datetime import datetime
+
+                    greeting = "Good morning" if delivery_time == "morning" else "Good evening"
+                    date_str = datetime.now().strftime("%A, %d %B %Y")
+                    digest_text = digest or "No summary available"
+                    links_text = "\n".join(links) if links else "No links available"
+
+                    # Send using Twilio approved template (daily_news_digest)
                     await asyncio.get_event_loop().run_in_executor(
                         None,
                         lambda: self.client.messages.create(
                             from_=self.from_number,
                             to=self.to_number,
-                            persistent_action=['template:hello_world']
+                            persistent_action=[
+                                f"template:daily_news_digest",
+                                f"template_args:[\"{greeting}\", \"{date_str}\", \"{digest_text}\", \"{links_text}\"]"
+                            ]
                         )
                     )
                     self.logger.info("Template message sent successfully (fallback)")
                     return True
+
                 except Exception as template_error:
                     self.logger.error(f"Failed to send template fallback: {template_error}")
                     return False
@@ -91,9 +108,8 @@ class WhatsAppService:
     async def send_news_digest(self, digest: str, delivery_time: str = "now") -> bool:
         """Send a formatted news digest via WhatsApp."""
         try:
-            timestamp = asyncio.get_event_loop().run_in_executor(
-                None, lambda: __import__('datetime').datetime.now().strftime("%I:%M %p IST")
-            )
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%I:%M %p IST")
 
             formatted_message = f"""📰 *News Digest - {timestamp}*
 
@@ -102,11 +118,21 @@ class WhatsAppService:
 ---
 *Sent by AI News Agent*"""
 
-            # Ensure message isn't too long for WhatsApp
             if len(formatted_message) > 4096:
                 formatted_message = formatted_message[:4093] + "..."
 
-            success = await self.send_message(formatted_message)
+            # Example: extract links from your digest if stored or available
+            # (Modify this as per your NewsService structure)
+            links = []
+            if hasattr(self, "latest_articles"):
+                links = [a.get("url") for a in self.latest_articles if "url" in a]
+
+            success = await self.send_message(
+                formatted_message,
+                digest=digest,
+                delivery_time=delivery_time,
+                links=links
+            )
 
             if success:
                 self.logger.info(f"News digest sent successfully at {delivery_time}")
@@ -122,9 +148,8 @@ class WhatsAppService:
     async def send_error_notification(self, error_message: str) -> bool:
         """Send an error notification via WhatsApp."""
         try:
-            timestamp = asyncio.get_event_loop().run_in_executor(
-                None, lambda: __import__('datetime').datetime.now().strftime("%Y-%m-%d %I:%M %p IST")
-            )
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%Y-%m-%d %I:%M %p IST")
 
             error_msg = f"""⚠️ *AI News Agent Error*
 
@@ -172,9 +197,8 @@ If you received this message, the WhatsApp service is working correctly!
     async def send_delivery_confirmation(self, delivery_type: str, article_count: int) -> bool:
         """Send confirmation of successful news delivery."""
         try:
-            timestamp = asyncio.get_event_loop().run_in_executor(
-                None, lambda: __import__('datetime').datetime.now().strftime("%I:%M %p IST")
-            )
+            from datetime import datetime
+            timestamp = datetime.now().strftime("%I:%M %p IST")
 
             confirmation_msg = f"""✅ *News Delivery Confirmed*
 
