@@ -59,20 +59,14 @@ class RSSFeedParser:
         self.timeout = getattr(settings, "RSS_FETCH_TIMEOUT", 15)
 
     async def fetch_feed(self, url: str) -> Optional[feedparser.FeedParserDict]:
-        """
-        Fetch RSS feed from URL with SSL-safe fallback.
-        CNN and some other sources occasionally break TLS handshakes,
-        so we use requests(verify=False) + feedparser fallback.
-        """
+        """Fetch RSS feed from URL with SSL-safe fallback."""
         try:
             self.logger.info(f"Fetching RSS feed: {url}")
 
             def _fetch():
-                # Ignore SSL verification to avoid EOF handshake bug
                 return self.session.get(url, timeout=self.timeout, verify=False)
 
             response = await asyncio.get_event_loop().run_in_executor(None, _fetch)
-
             if response.status_code != 200:
                 self.logger.warning(f"Feed fetch failed [{response.status_code}] for {url}")
                 return None
@@ -93,14 +87,11 @@ class RSSFeedParser:
             return feed
 
         except Exception as e:
-            # fallback: use feedparser directly
             self.logger.error(f"Error fetching feed {url}, retrying with feedparser directly", exc=e)
             try:
                 feed = await asyncio.get_event_loop().run_in_executor(None, lambda: feedparser.parse(url))
                 if feed.entries:
-                    self.logger.info(
-                        f"Recovered {len(feed.entries)} entries via feedparser fallback for {url}"
-                    )
+                    self.logger.info(f"Recovered {len(feed.entries)} entries via feedparser fallback for {url}")
                     return feed
             except Exception as e2:
                 self.logger.error(f"Fallback also failed for {url}", exc=e2)
@@ -256,6 +247,24 @@ class NewsAggregator:
         total = sum(len(v) for v in all_news.values())
         self.logger.info(f"Total articles fetched: {total}")
         return all_news
+
+    async def enrich_articles_with_content(self, articles: List[Article]) -> List[Article]:
+        """
+        Optionally fetch full article text for each article (best-effort).
+        Some RSS feeds include only snippets; this tries to expand them.
+        """
+        self.logger.info(f"Enriching {len(articles)} articles with full content (best effort)")
+        enriched_articles = []
+        for article in articles:
+            try:
+                if not article.content or len(article.content) < 200:
+                    full_text = await self.parser.extract_article_content(article.link)
+                    if full_text:
+                        article.content = full_text
+            except Exception as e:
+                self.logger.warning(f"Failed to enrich article: {article.title[:40]}...", exc=e)
+            enriched_articles.append(article)
+        return enriched_articles
 
 
 # ---------------------------------------------------------------------
