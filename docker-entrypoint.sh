@@ -51,7 +51,7 @@ if [ -f "/app/app/send_digest.py" ]; then
     current_time=$(date +"%Y-%m-%d %H:%M:%S")
     echo "🕒 Current time: $current_time (IST)"
     echo "🚀 Running AI News Digest..."
-    python /app/app/send_digest.py
+    python -m app.send_digest
 
     echo "✅ Digest cycle complete."
 
