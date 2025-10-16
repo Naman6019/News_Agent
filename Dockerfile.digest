@@ -1,10 +1,13 @@
 # -----------------------------------
-# AI News Digest Worker Dockerfile (Final)
+# AI News Digest Worker Dockerfile (Final Fixed)
 # -----------------------------------
 FROM ollama/ollama:latest
 
+# Set working directory
 WORKDIR /app
-COPY . /app
+
+# Copy only the app folder (so /app/send_digest.py exists correctly)
+COPY app /app
 
 # Install Python inside a venv to avoid Debian pip restrictions
 RUN apt-get update && \
@@ -12,15 +15,21 @@ RUN apt-get update && \
     apt-get upgrade -y && \
     rm -rf /var/lib/apt/lists/* && \
     python3 -m venv /opt/venv
+
 ENV PATH="/opt/venv/bin:$PATH"
 
-# Install Python packages
+# Install Python dependencies
+COPY requirements-digest.txt /app/requirements-digest.txt
 RUN pip install --upgrade pip setuptools wheel && \
-    pip install --no-cache-dir -r requirements-digest.txt
+    pip install --no-cache-dir -r /app/requirements-digest.txt
 
 # Copy entrypoint script
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
+# Expose Ollama API port
 EXPOSE 11434
+
+# Start worker
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["python", "/app/send_digest.py"]

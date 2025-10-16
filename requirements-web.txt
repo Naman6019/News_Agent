@@ -10,3 +10,5 @@ apscheduler==3.10.4
 python-dotenv==1.0.1
 structlog==23.2.0
 sentry-sdk[fastapi]==2.20.0
+SQLAlchemy==2.0.23
+alembic==1.12.1
