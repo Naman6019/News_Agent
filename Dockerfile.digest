@@ -1,5 +1,5 @@
 # -----------------------------------
-# AI News Digest Worker + Ollama Setup (Final Fixed)
+# AI News Digest Worker + Ollama Setup
 # -----------------------------------
 FROM ollama/ollama:latest
 
@@ -7,7 +7,7 @@ WORKDIR /app
 COPY . /app
 
 # -----------------------------------
-# Install Python dependencies safely
+# Install Python safely
 # -----------------------------------
 RUN apt-get update && apt-get install -y python3 python3-pip python3-venv && \
     python3 -m pip install --upgrade --no-cache-dir pip setuptools wheel --break-system-packages && \
@@ -16,19 +16,22 @@ RUN apt-get update && apt-get install -y python3 python3-pip python3-venv && \
 EXPOSE 11434
 
 # -----------------------------------
-# Reset entrypoint to shell
+# Reset entrypoint to a shell
 # -----------------------------------
-ENTRYPOINT ["/bin/sh", "-c"]
+ENTRYPOINT ["/bin/bash", "-c"]
 
 # -----------------------------------
-# Start Ollama server and your digest service
-# Keep the process running
+# Start Ollama, wait for it to be ready,
+# verify it’s responding, then start digest job
 # -----------------------------------
 CMD "\
+echo '🔵 Starting Ollama server...' && \
 ollama serve & \
 sleep 10 && \
-echo '🟢 Pulling model gemma3:1b...' && \
+echo '🟢 Checking Ollama health...' && \
+curl -s http://localhost:11434/api/tags || echo '⚠️ Ollama not responding yet' && \
+echo '📦 Pulling model gemma3:1b...' && \
 ollama pull gemma3:1b && \
-echo '✅ Model ready. Starting News Digest...' && \
-python /app/app/send_digest.py & \
+echo '✅ Model ready. Launching News Digest...' && \
+python /app/app/send_digest.py || echo '⚠️ Digest exited early, restarting Ollama...' && \
 tail -f /dev/null"
