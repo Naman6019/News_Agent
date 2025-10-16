@@ -1,7 +1,12 @@
+pydantic==2.10.0
+pydantic-settings==2.10.1
+fastapi==0.104.1
+uvicorn==0.24.0
 feedparser==6.0.10
 beautifulsoup4==4.12.2
-requests==2.32.5
-ollama==0.6.0
+requests==2.32.3
+ollama==0.1.6
+twilio==8.10.0
+apscheduler==3.10.4
 python-dotenv==1.0.1
 structlog==23.2.0
-apscheduler==3.10.4
