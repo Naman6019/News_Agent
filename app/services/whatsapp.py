@@ -20,8 +20,12 @@ class WhatsAppService:
         self.logger = StructuredLogger(__name__)
 
         # Check if Twilio is configured
-        if not all([settings.TWILIO_ACCOUNT_SID, settings.TWILIO_AUTH_TOKEN,
-                   settings.TWILIO_PHONE_NUMBER, settings.WHATSAPP_RECIPIENT_NUMBER]):
+        if not all([
+            settings.TWILIO_ACCOUNT_SID,
+            settings.TWILIO_AUTH_TOKEN,
+            settings.TWILIO_PHONE_NUMBER,
+            settings.WHATSAPP_RECIPIENT_NUMBER
+        ]):
             self.logger.warning("Twilio credentials not configured - WhatsApp service disabled")
             self.client = None
             self.from_number = None
@@ -40,7 +44,7 @@ class WhatsAppService:
             self.to_number = None
 
     async def send_message(self, message: str) -> bool:
-        """Send a WhatsApp message."""
+        """Send a WhatsApp message with fallback for 24-hour session expiry."""
         if not self.client:
             self.logger.warning("WhatsApp service not configured - message not sent")
             return False
@@ -61,17 +65,32 @@ class WhatsAppService:
             self.logger.info("WhatsApp message sent successfully")
             return True
 
-        except TwilioException as e:
-            self.logger.error(f"Twilio error sending WhatsApp message: {e}")
-            return False
         except Exception as e:
-            self.logger.error(f"Unexpected error sending WhatsApp message", exc=e)
+            # Handle 24-hour session restriction (error 63016)
+            if hasattr(e, "code") and e.code == 63016:
+                self.logger.warning("Session expired — sending WhatsApp template message fallback")
+
+                try:
+                    await asyncio.get_event_loop().run_in_executor(
+                        None,
+                        lambda: self.client.messages.create(
+                            from_=self.from_number,
+                            to=self.to_number,
+                            persistent_action=['template:hello_world']
+                        )
+                    )
+                    self.logger.info("Template message sent successfully (fallback)")
+                    return True
+                except Exception as template_error:
+                    self.logger.error(f"Failed to send template fallback: {template_error}")
+                    return False
+
+            self.logger.error(f"Twilio error sending WhatsApp message: {e}")
             return False
 
     async def send_news_digest(self, digest: str, delivery_time: str = "now") -> bool:
         """Send a formatted news digest via WhatsApp."""
         try:
-            # Create a formatted message with timestamp
             timestamp = asyncio.get_event_loop().run_in_executor(
                 None, lambda: __import__('datetime').datetime.now().strftime("%I:%M %p IST")
             )
@@ -84,7 +103,7 @@ class WhatsAppService:
 *Sent by AI News Agent*"""
 
             # Ensure message isn't too long for WhatsApp
-            if len(formatted_message) > 4096:  # WhatsApp message limit
+            if len(formatted_message) > 4096:
                 formatted_message = formatted_message[:4093] + "..."
 
             success = await self.send_message(formatted_message)
@@ -183,14 +202,12 @@ Your news digest has been delivered successfully!
                 "errors": []
             }
 
-            # Check if numbers are in correct format
             if not settings.TWILIO_PHONE_NUMBER.startswith('+'):
                 validation["errors"].append("Twilio phone number must start with +")
 
             if not settings.WHATSAPP_RECIPIENT_NUMBER.startswith('+'):
                 validation["errors"].append("Recipient phone number must start with +")
 
-            # Basic format validation (should be + followed by digits)
             import re
             phone_pattern = r'^\+[1-9]\d{1,14}$'
 
@@ -200,7 +217,6 @@ Your news digest has been delivered successfully!
             if not re.match(phone_pattern, settings.WHATSAPP_RECIPIENT_NUMBER):
                 validation["errors"].append("Recipient phone number format is invalid")
 
-            # If no errors, numbers are considered valid
             if not validation["errors"]:
                 validation["twilio_number_valid"] = True
                 validation["recipient_number_valid"] = True
