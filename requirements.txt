@@ -12,7 +12,6 @@ requests==2.32.5
 
 # AI summarization (Local with Ollama)
 ollama==0.6.0
-requests==2.32.5
 
 # WhatsApp integration
 twilio==8.10.0

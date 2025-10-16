@@ -1,5 +1,5 @@
 /.env
-/.env.example
 /.vscode
 /docker-compose.yml
 /news_agent.log
+/requirements.txt
