@@ -1,27 +1,7 @@
-# RSS feed processing and parsing
 feedparser==6.0.10
 beautifulsoup4==4.12.2
 requests==2.32.5
-urllib3==2.5.0
-
-# AI model integration (Ollama client)
 ollama==0.6.0
-
-# WhatsApp messaging
-twilio==8.10.0
-
-# Task scheduling
-APScheduler==3.10.4
-
-# Timezone handling
-pytz==2023.3
-
-# Database for health checks
-sqlalchemy==2.0.23
-
-# Async support
-asyncio
-
-# Development and testing (minimal)
-pytest==7.4.3
-pytest-asyncio==0.21.1
+python-dotenv==1.0.1
+structlog==23.2.0
+apscheduler==3.10.4

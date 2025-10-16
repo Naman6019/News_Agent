@@ -1,31 +1,23 @@
-# -------------------------------
-# Background Digest Worker + Ollama
-# -------------------------------
-FROM python:3.11-slim
+# -----------------------------------
+# Ollama Worker (News Digest) Dockerfile
+# -----------------------------------
+FROM ollama/ollama:latest
 
 WORKDIR /app
 COPY . /app
 
-# Install Ollama and dependencies
-RUN apt-get update && apt-get install -y curl git ca-certificates && \
-    curl -fsSL https://ollama.com/install.sh | bash && \
-    rm -rf /var/lib/apt/lists/*
+# Install Python inside a venv to avoid system conflicts
+RUN apt-get update && apt-get install -y --no-install-recommends python3-venv curl bash && \
+    rm -rf /var/lib/apt/lists/* && \
+    python3 -m venv /opt/venv
+ENV PATH="/opt/venv/bin:$PATH"
 
-COPY requirements-digest.txt .
-RUN pip install --no-cache-dir -r requirements-digest.txt
+RUN pip install --upgrade pip setuptools wheel && \
+    pip install --no-cache-dir -r requirements-digest.txt
 
-# Copy application code
-COPY . .
+# Copy entrypoint
+COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
-# Expose Ollama API port
 EXPOSE 11434
-
-# Run Ollama, pull model, and start digest script
-CMD ["sh", "-c", "\
-echo '🚀 Starting Ollama server...' && \
-ollama serve & \
-sleep 10 && \
-echo '📥 Pulling model gemma3:1b...' && \
-ollama pull gemma3:1b && \
-echo '✅ Model ready. Starting News Digest service...' && \
-python /app/app/send_digest.py"]
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
