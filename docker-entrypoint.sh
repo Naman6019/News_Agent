@@ -12,6 +12,11 @@ until curl -s http://localhost:11434/api/tags > /dev/null; do
   sleep 2
 done
 echo "✅ Ollama API is up."
+# Allow Ollama a few extra seconds to finish loading model into memory
+sleep 10
+echo "🔥 Preloading Gemma model..."
+curl -s -X POST http://localhost:11434/api/generate -d '{"model": "gemma3:1b", "prompt": "ping"}' > /dev/null || true
+echo "✅ Gemma model warm-up complete."
 
 # --- 3️⃣ Set timezone to Asia/Kolkata (IST) ---
 export TZ="Asia/Kolkata"
