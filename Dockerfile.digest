@@ -11,8 +11,8 @@ RUN apt-get update && apt-get install -y curl git ca-certificates && \
     curl -fsSL https://ollama.com/install.sh | bash && \
     rm -rf /var/lib/apt/lists/*
 
-COPY requirements-lock.txt .
-RUN pip install --no-cache-dir -r requirements-lock.txt
+COPY requirements-digest.txt .
+RUN pip install --no-cache-dir -r requirements-digest.txt
 
 COPY . .
 
@@ -23,4 +23,4 @@ RUN ollama pull gemma3:1b
 EXPOSE 11434
 
 # Run Ollama and your digest script together
-CMD ["sh", "-c", "ollama serve & python app/services/send_digest.py"]
+CMD ["sh", "-c", "ollama serve & sleep 10 && python /app/app/send_digest.py"]
