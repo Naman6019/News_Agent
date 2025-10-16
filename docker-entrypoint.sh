@@ -44,14 +44,14 @@ next_run_delay() {
 }
 
 # --- 5️⃣ Main loop: run only at 8 AM and 6 PM IST ---
-if [ -f "/app/send_digest.py" ]; then
+if [ -f "/app/app/send_digest.py" ]; then
   echo "✅ Found send_digest.py, starting scheduled digest cycles..."
 
   while true; do
     current_time=$(date +"%Y-%m-%d %H:%M:%S")
     echo "🕒 Current time: $current_time (IST)"
     echo "🚀 Running AI News Digest..."
-    python /app/send_digest.py
+    python /app/app/send_digest.py
 
     echo "✅ Digest cycle complete."
 
