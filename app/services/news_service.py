@@ -10,7 +10,7 @@ from datetime import datetime, timedelta
 import pytz
 
 from app.services.rss_parser import NewsAggregator
-from app.services.summarizer import Summarizer
+from app.services.summarizer import NewsSummarizer
 from app.services.whatsapp import WhatsAppService
 from app.core.config import settings
 from app.core.logging import StructuredLogger
@@ -23,7 +23,7 @@ class NewsService:
     def __init__(self):
         self.logger = StructuredLogger(__name__)
         self.aggregator = NewsAggregator()
-        self.summarizer = Summarizer()
+        self.summarizer = NewsSummarizer()
         self.whatsapp = WhatsAppService()
 
     # ----------------------------- #
