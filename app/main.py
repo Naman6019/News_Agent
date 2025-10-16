@@ -4,11 +4,12 @@ Sends daily news summaries via WhatsApp using RSS feeds and AI
 """
 
 import logging
+import asyncio
 from contextlib import asynccontextmanager
 from typing import AsyncGenerator
 import os
 
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.core.config import settings
@@ -27,39 +28,45 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan manager for startup and shutdown events."""
     global news_scheduler
 
-    # Setup logging
     setup_logging()
-
     logger = logging.getLogger(__name__)
     logger.info("Starting AI News Agent...")
+    logger.info(f"Render environment detected, PORT = {os.getenv('PORT')}")
 
-    # Initialize and start the news scheduler
     try:
         logger.info("Initializing news scheduler...")
         news_scheduler = NewsScheduler()
-        logger.info("News scheduler initialized, attempting to start...")
-        await news_scheduler.start()
-        logger.info("News scheduler started successfully")
-
-        # Set the global scheduler instance for API endpoints
         set_scheduler(news_scheduler)
-        logger.info("Scheduler registered with API endpoints")
+        logger.info("News scheduler initialized")
+
+        # ✅ Run scheduler startup in background (non-blocking)
+        async def start_scheduler_background():
+            try:
+                await news_scheduler.start()
+                logger.info("News scheduler started successfully in background")
+            except Exception as e:
+                logger.error(f"Failed to start news scheduler in background: {e}")
+
+        asyncio.create_task(start_scheduler_background())
+        logger.info("Background scheduler startup task launched")
     except Exception as e:
-        logger.error(f"Failed to start news scheduler: {e}")
-        logger.warning("Application will continue without automated scheduling")
-        logger.info("API will still work for manual operations")
-        news_scheduler = None  # Keep as None if initialization fails
+        logger.error(f"Error initializing scheduler: {e}")
+        news_scheduler = None
 
-    yield
+    yield  # Allow app startup to continue immediately
 
-    # Shutdown
+    # On shutdown
     logger.info("Shutting down AI News Agent...")
     if news_scheduler:
-        await news_scheduler.stop()
+        try:
+            await news_scheduler.stop()
+            logger.info("Scheduler stopped cleanly")
+        except Exception as e:
+            logger.error(f"Error during scheduler shutdown: {e}")
     logger.info("Shutdown complete")
 
 
-# Create FastAPI application
+# Create FastAPI app
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
@@ -100,15 +107,15 @@ async def root():
     }
 
 
-# Include API routers
+# Include all routers
 app.include_router(api_router, prefix=settings.API_V1_STR)
 
 
+# Only used when running locally (Render overrides this with Docker CMD)
 if __name__ == "__main__":
     import uvicorn
-    import os
 
-    port = int(os.environ.get("PORT", 8080))  # 8080 is default for Cloud Run
+    port = int(os.environ.get("PORT", 8080))
     uvicorn.run(
         "app.main:app",
         host="0.0.0.0",
