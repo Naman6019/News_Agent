@@ -1,36 +1,37 @@
 # -----------------------------------
-# AI News Digest Worker + Ollama Setup
+# AI News Digest Worker + Ollama Setup (Final)
 # -----------------------------------
 FROM ollama/ollama:latest
 
 # Set working directory
 WORKDIR /app
 
-# Copy your project files
+# Copy your project
 COPY . /app
 
 # -----------------------------------
-# Install Python dependencies safely
+# Install Python and dependencies safely
 # -----------------------------------
-# 1. Update and install pip tools cleanly
-# 2. Use --break-system-packages to bypass Ubuntu's PEP 668 restriction
-# 3. Prevent Debian wheel uninstall errors
+# Use --break-system-packages to avoid Ubuntu’s PEP 668 issue
 RUN apt-get update && apt-get install -y python3 python3-pip python3-venv && \
     python3 -m pip install --upgrade --no-cache-dir pip setuptools wheel --break-system-packages && \
     pip install --no-cache-dir --break-system-packages -r requirements-lock.txt || true
 
-# -----------------------------------
 # Expose Ollama API port
-# -----------------------------------
 EXPOSE 11434
+
+# -----------------------------------
+# Reset entrypoint to shell
+# (ollama/ollama image sets ENTRYPOINT to "ollama" by default)
+# -----------------------------------
+ENTRYPOINT ["/bin/sh", "-c"]
 
 # -----------------------------------
 # Start Ollama + Model + News Scheduler
 # -----------------------------------
-CMD ["sh", "-c", "\
-ollama serve & \
+CMD "ollama serve & \
 sleep 10 && \
 echo '🟢 Starting Ollama model pull...' && \
 ollama pull gemma3:1b && \
 echo '✅ Model ready. Starting News Digest service...' && \
-python /app/app/send_digest.py"]
+python /app/app/send_digest.py"
