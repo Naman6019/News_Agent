@@ -16,11 +16,15 @@ RUN pip install --no-cache-dir -r requirements-digest.txt
 
 COPY . .
 
-# Preload your model for faster startup
-RUN ollama pull gemma3:1b
-
 # Expose Ollama API port
 EXPOSE 11434
 
-# Run Ollama and your digest script together
-CMD ["sh", "-c", "ollama serve & sleep 10 && python /app/app/send_digest.py"]
+# Run Ollama, pull model, and start digest script
+CMD ["sh", "-c", "\
+echo '🚀 Starting Ollama server...' && \
+ollama serve & \
+sleep 10 && \
+echo '📥 Pulling model gemma3:1b...' && \
+ollama pull gemma3:1b && \
+echo '✅ Model ready. Starting News Digest service...' && \
+python /app/app/send_digest.py"]
