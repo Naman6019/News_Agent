@@ -171,7 +171,6 @@ watchdog==6.0.0
 watchfiles==1.1.0
 webencodings==0.5.1
 websockets==15.0.1
-wheel==0.45.1
 win32_setctime==1.2.0
 xlrd==2.0.2
 xlsxwriter==3.2.5
