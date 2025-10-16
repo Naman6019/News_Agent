@@ -1,19 +1,35 @@
-# ---------- BASE IMAGE ----------
+# -----------------------------------
+# AI News Digest Worker + Ollama Setup
+# -----------------------------------
+# Base image: includes Ollama server (Ubuntu 24.04 + Python 3.12)
 FROM ollama/ollama:latest
 
-# ---------- SYSTEM SETUP ----------
+# Set working directory
 WORKDIR /app
+
+# Copy your entire project
 COPY . /app
 
-# Install Python and dependencies
+# -----------------------------------
+# Install Python + dependencies
+# -----------------------------------
+# Ubuntu 24.04 uses externally-managed Python (PEP 668)
+# so we must allow pip to override system packages using `--break-system-packages`
 RUN apt-get update && apt-get install -y python3 python3-pip && \
-    pip install --no-cache-dir -r requirements-lock.txt
+    pip install --no-cache-dir --break-system-packages -r requirements-lock.txt
 
+# -----------------------------------
 # Expose Ollama API port
+# -----------------------------------
 EXPOSE 11434
 
-# ---------- STARTUP COMMAND ----------
-# Start Ollama, wait for readiness, then run your digest job
+# -----------------------------------
+# Start Sequence:
+# 1. Start Ollama in background
+# 2. Wait for Ollama to become ready
+# 3. Pull the required model (gemma3:1b)
+# 4. Run your News Digest scheduler (send_digest.py)
+# -----------------------------------
 CMD ["sh", "-c", "\
 ollama serve & \
 sleep 10 && \
