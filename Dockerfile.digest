@@ -1,0 +1,25 @@
+# -------------------------------
+# Background Digest Worker + Ollama
+# -------------------------------
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# Install Ollama and dependencies
+RUN apt-get update && apt-get install -y curl git ca-certificates && \
+    curl -fsSL https://ollama.com/install.sh | bash && \
+    rm -rf /var/lib/apt/lists/*
+
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+COPY . .
+
+# Preload your model for faster startup
+RUN ollama pull gemma3:1b
+
+# Expose Ollama API port
+EXPOSE 11434
+
+# Run Ollama and your digest script together
+CMD ["sh", "-c", "ollama serve & python app/services/send_digest.py"]

@@ -1,0 +1,32 @@
+services:
+  # ---------------------------
+  # FastAPI Web Service (Frontend API)
+  # ---------------------------
+  - type: web
+    name: fastapi-full-time-service
+    runtime: docker
+    dockerfilePath: Dockerfile.web
+    plan: free
+    envVars:
+      - key: OLLAMA_BASE_URL
+        fromService:
+          name: digest-service
+          type: web
+          property: host
+      - key: PORT
+        value: 8000
+
+  # ---------------------------
+  # Digest Worker + Ollama
+  # ---------------------------
+  - type: web
+    name: digest-service
+    runtime: docker
+    dockerfilePath: Dockerfile.digest
+    plan: starter  # Needs ~2GB RAM
+    autoDeploy: true
+    envVars:
+      - key: OLLAMA_BASE_URL
+        value: http://0.0.0.0:11434
+      - key: OLLAMA_MODEL
+        value: gemma3:1b
