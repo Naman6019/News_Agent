@@ -154,7 +154,7 @@ streamlit==1.50.0
 structlog==23.2.0
 sympy==1.14.0
 tenacity==8.5.0
-tiktoken==0.5.2
+tiktoken>=0.7.0
 toml==0.10.2
 tornado==6.5.2
 tqdm==4.67.1
