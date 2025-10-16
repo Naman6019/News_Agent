@@ -10,8 +10,8 @@ RUN apt-get update && apt-get install -y curl git ca-certificates && \
     curl -fsSL https://ollama.com/install.sh | bash && \
     rm -rf /var/lib/apt/lists/*
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY requirements-lock.txt .
+RUN pip install --no-cache-dir -r requirements-lock.txt
 
 COPY . .
 
