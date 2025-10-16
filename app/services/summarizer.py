@@ -27,10 +27,36 @@ class NewsSummarizer:
         self.temperature = settings.OLLAMA_TEMPERATURE
 
     # -------------------------------------------------------
-    # Core Ollama call with retry + long timeout
+    # Wait for Ollama backend readiness
+    # -------------------------------------------------------
+    def _wait_for_ollama_ready(self, retries: int = 12, delay: int = 5) -> bool:
+        """Wait until Ollama /api/tags responds with a valid model list."""
+        for attempt in range(retries):
+            try:
+                r = requests.get(f"{self.base_url}/api/tags", timeout=5)
+                if r.status_code == 200:
+                    data = r.json()
+                    if "models" in data and data["models"]:
+                        self.logger.info("✅ Ollama backend is ready.")
+                        return True
+            except requests.RequestException:
+                pass
+
+            self.logger.info(f"⏳ Waiting for Ollama backend... ({attempt + 1}/{retries})")
+            time.sleep(delay)
+
+        self.logger.error("❌ Ollama backend not ready after waiting.")
+        return False
+
+    # -------------------------------------------------------
+    # Core Ollama call with readiness check, retry + long timeout
     # -------------------------------------------------------
     def _call_ollama_api(self, prompt: str) -> Optional[str]:
-        """Call Ollama API with a prompt (with retry and timeout)."""
+        """Call Ollama API with retry, readiness check, and long timeout."""
+        # Wait until backend responds
+        if not self._wait_for_ollama_ready():
+            return None
+
         url = f"{self.base_url}/api/generate"
         payload = {
             "model": self.model,
@@ -44,7 +70,7 @@ class NewsSummarizer:
 
         for attempt in range(3):
             try:
-                self.logger.debug(f"Ollama attempt {attempt+1}/3 with model: {self.model}")
+                self.logger.debug(f"Ollama attempt {attempt + 1}/3 with model: {self.model}")
                 response = requests.post(url, json=payload, timeout=60)
 
                 if response.status_code != 200:

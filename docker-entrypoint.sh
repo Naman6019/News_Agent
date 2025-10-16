@@ -12,6 +12,9 @@ until curl -s http://localhost:11434/api/tags > /dev/null; do
   sleep 2
 done
 echo "✅ Ollama API is up."
+# Wait extra to ensure model weights fully loaded
+echo "🕐 Waiting for model load stabilization..."
+sleep 20
 # Allow Ollama a few extra seconds to finish loading model into memory
 sleep 10
 echo "🔥 Preloading Gemma model..."
