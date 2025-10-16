@@ -16,8 +16,8 @@ RUN apt-get update && apt-get install -y \
 # ----------------------------
 # Copy dependencies
 # ----------------------------
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements-lock.txt
+COPY requirements_lock.txt .
+RUN pip install --no-cache-dir -r requirements_lock.txt
 
 # ----------------------------
 # Copy project
