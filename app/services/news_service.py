@@ -128,3 +128,26 @@ class NewsService:
             return
         await self.whatsapp.send_message(message)
         self.logger.info(f"{delivery_time.capitalize()} digest sent successfully.")
+
+    # ----------------------------- #
+    #  DAILY DIGEST FOR API ENDPOINT
+    # ----------------------------- #
+    async def generate_daily_digest(self, delivery_time: str = "morning") -> str:
+        """Generate a full daily digest (same logic as send_digest.py)."""
+        try:
+            # Fetch latest news by category
+            articles_by_category = await self.aggregator.fetch_all_news()
+
+            # Enrich with content before summarizing
+            for category, articles in articles_by_category.items():
+                articles_by_category[category] = await self.aggregator.enrich_articles_with_content(articles)
+
+            # Generate digest text using Ollama
+            digest_message = await self.summarizer.generate_daily_digest(
+                articles_by_category,
+                delivery_time=delivery_time
+            )
+            return digest_message
+
+        except Exception as e:
+            raise RuntimeError(f"Error generating daily digest: {e}")
