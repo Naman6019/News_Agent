@@ -1,24 +1,29 @@
 # -----------------------------------
-# FastAPI Web Service Dockerfile
+# FastAPI Web Service Dockerfile (Final)
 # -----------------------------------
 FROM python:3.11-slim
 
 WORKDIR /app
 COPY . /app
 
-# Install system deps
-RUN apt-get update && apt-get install -y --no-install-recommends build-essential curl && \
+# Install and update system deps (security patch)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends build-essential curl && \
+    apt-get upgrade -y && \
     rm -rf /var/lib/apt/lists/*
 
-# Use venv to avoid PEP 668 issues
+# Create a virtual environment to avoid system pip conflicts (PEP 668)
 RUN python -m venv /opt/venv
 ENV PATH="/opt/venv/bin:$PATH"
 
+# Install Python dependencies
 RUN pip install --upgrade pip setuptools wheel && \
     pip install --no-cache-dir -r requirements-web.txt
 
-# Use Render's PORT env var or default 10000
-ENV PORT=${PORT:-10000}
+# Define port (Render injects $PORT automatically)
+ARG PORT=10000
+ENV PORT=${PORT}
 EXPOSE ${PORT}
 
+# Start FastAPI using uvicorn
 CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT} --log-level info"]

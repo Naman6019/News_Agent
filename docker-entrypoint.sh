@@ -38,8 +38,8 @@ else
   PY_PID=""
 fi
 
-# Keep container alive
-echo "===> Worker running. Monitoring processes..."
+# Keep container alive and monitor processes
+echo "===> Worker running. Monitoring..."
 while true; do
   sleep 15
   if ! kill -0 "$OLLAMA_PID" 2>/dev/null; then
@@ -48,6 +48,5 @@ while true; do
   fi
   if [ -n "${PY_PID:-}" ] && ! kill -0 "$PY_PID" 2>/dev/null; then
     echo "⚠️ Digest script exited; keeping container alive for inspection"
-    ps -ef | grep python
   fi
 done

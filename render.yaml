@@ -4,7 +4,7 @@ services:
   # ----------------------------------
   - type: web
     name: news-api
-    env: docker
+    runtime: docker
     dockerfilePath: ./Dockerfile.web
     plan: free
     autoDeploy: true
@@ -38,11 +38,11 @@ services:
         sync: false
 
   # ----------------------------------
-  # 2️⃣ Ollama News Digest Worker
+  # 2️⃣ Ollama Worker (News Digest)
   # ----------------------------------
   - type: worker
     name: news-digest
-    env: docker
+    runtime: docker
     dockerfilePath: ./Dockerfile.digest
     plan: starter
     autoDeploy: true
@@ -50,7 +50,7 @@ services:
       - key: OLLAMA_MODEL
         value: gemma3:1b
       - key: DIGEST_SCRIPT_PATH
-        value: /app/send_digest.py
+        value: /app/send_digest.py   # ✅ FIXED PATH
       - key: MORNING_DELIVERY_HOUR
         value: "8"
       - key: EVENING_DELIVERY_HOUR
