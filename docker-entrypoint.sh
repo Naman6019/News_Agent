@@ -1,52 +1,27 @@
-#!/usr/bin/env bash
-set -euo pipefail
+#!/bin/bash
+set -e
 
-MODEL_NAME="${OLLAMA_MODEL:=gemma3:1b}"
-OLLAMA_HEALTH_URL="http://127.0.0.1:11434/api/tags"
-PY_SCRIPT_PATH="${DIGEST_SCRIPT_PATH:-/app/send_digest.py}"
-MAX_HEALTH_RETRIES=30
-HEALTH_SLEEP=2
+echo "=== Starting AI News Digest Worker ==="
 
-echo "===> Starting Ollama server..."
+# Start Ollama in background
 ollama serve &
-OLLAMA_PID=$!
+sleep 5
 
-# Wait for Ollama to respond
-echo "===> Waiting for Ollama to become ready..."
-i=0
-until curl -fsSL "$OLLAMA_HEALTH_URL" >/dev/null 2>&1; do
-  i=$((i+1))
-  if [ $i -ge $MAX_HEALTH_RETRIES ]; then
-    echo "❌ Ollama not responding after $((MAX_HEALTH_RETRIES*HEALTH_SLEEP))s"
-    wait "$OLLAMA_PID" || true
-    exit 1
-  fi
-  sleep $HEALTH_SLEEP
+# Wait for Ollama API to be ready
+until curl -s http://localhost:11434/api/tags > /dev/null; do
+  echo "⏳ Waiting for Ollama API to start..."
+  sleep 2
 done
 echo "✅ Ollama API is up."
 
-echo "===> Pulling model ${MODEL_NAME}..."
-ollama pull "${MODEL_NAME}" || echo "⚠️ Model pull failed (continuing anyway)"
-
-# Run digest worker
-if [ -f "${PY_SCRIPT_PATH}" ]; then
-  echo "===> Launching News Digest worker (${PY_SCRIPT_PATH})..."
-  python "${PY_SCRIPT_PATH}" &
-  PY_PID=$!
+# Run the digest worker
+if [ -f "/app/app/send_digest.py" ]; then
+  echo "✅ Found send_digest.py, starting digest worker..."
+  python app/send_digest.py
 else
-  echo "⚠️ Digest script not found at ${PY_SCRIPT_PATH}"
-  PY_PID=""
+  echo "⚠️ Digest script not found at /app/app/send_digest.py"
+  echo "Listing /app contents for debugging:"
+  ls -al /app
+  echo "=== > Worker idle ==="
+  tail -f /dev/null
 fi
-
-# Keep container alive and monitor processes
-echo "===> Worker running. Monitoring..."
-while true; do
-  sleep 15
-  if ! kill -0 "$OLLAMA_PID" 2>/dev/null; then
-    echo "❌ Ollama crashed — exiting for restart"
-    exit 2
-  fi
-  if [ -n "${PY_PID:-}" ] && ! kill -0 "$PY_PID" 2>/dev/null; then
-    echo "⚠️ Digest script exited; keeping container alive for inspection"
-  fi
-done

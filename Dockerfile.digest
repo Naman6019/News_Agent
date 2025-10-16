@@ -6,8 +6,8 @@ FROM ollama/ollama:latest
 # Set working directory
 WORKDIR /app
 
-# Copy only the app folder (so /app/send_digest.py exists correctly)
-COPY app /app
+# Copy the entire project (so app/send_digest.py structure is preserved)
+COPY . /app
 
 # Install Python inside a venv to avoid Debian pip restrictions
 RUN apt-get update && \
@@ -16,6 +16,7 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     python3 -m venv /opt/venv
 
+# Set venv path
 ENV PATH="/opt/venv/bin:$PATH"
 
 # Install Python dependencies
@@ -30,6 +31,5 @@ RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 # Expose Ollama API port
 EXPOSE 11434
 
-# Start worker
+# Run the entrypoint script, which launches the worker
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
-CMD ["python", "/app/send_digest.py"]
