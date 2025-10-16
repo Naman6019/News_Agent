@@ -1,28 +1,23 @@
-# -------------------------------
-# Background Digest Worker + Ollama
-# -------------------------------
-FROM python:3.11-slim
+# ---------- BASE IMAGE ----------
+FROM ollama/ollama:latest
 
+# ---------- SYSTEM SETUP ----------
 WORKDIR /app
+COPY . /app
 
-# Install Ollama and dependencies
-RUN apt-get update && apt-get install -y curl git ca-certificates && \
-    curl -fsSL https://ollama.com/install.sh | bash && \
-    rm -rf /var/lib/apt/lists/*
-
-COPY requirements-lock.txt .
-RUN pip install --no-cache-dir -r requirements-lock.txt
-
-COPY . .
+# Install Python and dependencies
+RUN apt-get update && apt-get install -y python3 python3-pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Expose Ollama API port
 EXPOSE 11434
 
-# Start Ollama first, wait for it to be ready, then pull the model & start the digest service
+# ---------- STARTUP COMMAND ----------
+# Start Ollama, wait for readiness, then run your digest job
 CMD ["sh", "-c", "\
 ollama serve & \
-sleep 5 && \
-echo 'Pulling model gemma3:1b...' && \
+sleep 10 && \
+echo '🟢 Starting Ollama model pull...' && \
 ollama pull gemma3:1b && \
-echo 'Starting digest scheduler...' && \
-python app/services/send_digest.py"]
+echo '✅ Model ready. Starting News Digest service...' && \
+python /app/app/send_digest.py"]
